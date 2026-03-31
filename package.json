@@ -12,9 +12,11 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@types/node": "^25.5.0",
     "typescript": "^6.0.2"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1"
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^17.3.1"
   }
 }
