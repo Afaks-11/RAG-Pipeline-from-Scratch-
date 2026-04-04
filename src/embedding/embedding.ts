@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CONFIG } from "../config/config.js";
 
 const genAI = new GoogleGenerativeAI(CONFIG.API_KEY as string);
-const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 export async function embedTexts(texts: string[]): Promise<number[][]> {
   const requests = texts.map((text) => ({
