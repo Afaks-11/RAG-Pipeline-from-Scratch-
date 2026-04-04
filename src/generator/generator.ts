@@ -9,7 +9,7 @@ export async function generate(
   results: SearchResult[],
   options: { model?: string; temperature?: number } = {},
 ): Promise<GenerationResult> {
-  const { model = "gemini-1.5-flash", temperature = 0.2 } = options;
+  const { model = "gemini-2.5-flash", temperature = 0.2 } = options;
 
   // 2. Build the context block (This stays exactly the same!
   const contextBlock = results
