@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx tsx src/rag.ts"
+    "start": "npx tsx src/rag.ts",
+    "seed": "tsx src/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +14,7 @@
   "type": "module",
   "devDependencies": {
     "@types/node": "^25.5.0",
+    "@types/pdf-parse": "^1.1.5",
     "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.10",
     "typescript": "^6.0.2"
@@ -21,6 +23,7 @@
     "@google/generative-ai": "^0.24.1",
     "dotenv": "^17.4.1",
     "drizzle-orm": "^0.45.2",
+    "pdf-parse": "^2.4.5",
     "pg": "^8.20.0"
   }
 }
