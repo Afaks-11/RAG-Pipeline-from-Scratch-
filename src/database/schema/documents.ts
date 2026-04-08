@@ -17,6 +17,6 @@ export const documents = pgTable("documents", {
     .notNull(),
   document_name: varchar("document_name", { length: 255 }).notNull(),
   version: integer("version").default(1).notNull(),
-  metadat: jsonb("metadata"),
+  metadata: jsonb("metadata"),
   createdAt: timestamp("creted_at").defaultNow().notNull(),
 });
