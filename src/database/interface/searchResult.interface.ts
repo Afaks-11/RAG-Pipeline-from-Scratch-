@@ -1,7 +1,6 @@
-import type { Chunk } from "../../chunk/interface/chunk.interface.js";
-
 export interface SearchResult {
-  chunk: Chunk;
-  score: number;
-  source: string;
+  id: string;
+  content: string;
+  documentId: string;
+  similarity: number;
 }

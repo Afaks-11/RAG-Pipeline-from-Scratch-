@@ -1,0 +1,8 @@
+# 1. Turn on pgvector 
+npx tsx src/database/setup.ts
+
+# 2. Tell Drizzle to read the schema and build the tables in Postgres
+npx drizzle-kit push 
+
+# 3. Seeding the database 
+npm run seed
