@@ -1,26 +1,33 @@
 import { eq, sql } from "drizzle-orm";
+import { CohereClient } from "cohere-ai";
 
 import { db } from "./index.js";
 import { chunks } from "./schema/chunks.js";
 import { embedBatch } from "../embedding/embedding.js";
+import { CONFIG } from "../config/config.js";
 
 import type { Chunk } from "../chunk/interface/chunk.interface.js";
 import type { StoredDocument } from "./interface/storeDocument.interface.js";
 import type { SearchResult } from "./interface/searchResult.interface.js";
 import type { RetrievalResponse } from "./interface/retrievalResponse.interface.js";
 
+const cohere = new CohereClient({ token: CONFIG.token || "" });
 /**
- * Performs a vector similarity search directly in PostgreSQL
+ * Stage 1: Perform a Hybrid Search (Vector + Full-Text BM25) in PostgreSQL (Fetch to 20)
+ * Stage 2: Reranking with Cohere (Filters down to top 3)
  * @param query The user's search question
  * @param userId The ID of the user searching (to prevent data leaks)
+ * @param dbLimit The top 20 fetch from postgres
+ * @param finalLimit The final 3 fetch by cohere-ai
  * @returns limit How many chunks to return
  */
 export async function search(
   query: string,
   userId: string,
-  limit: number = 5,
+  dbLimit: number = 20,
+  finalLimit: number = 3,
 ): Promise<RetrievalResponse> {
-  console.log(` Embedding search query: "${query}"...`);
+  console.log(` Stage 1: Running Hybrid Search for: "${query}"...`);
 
   const [queryEmbedding] = await embedBatch([query]);
 
@@ -28,43 +35,84 @@ export async function search(
     throw new Error("Failed to generate embedding for the search query.");
   }
 
-  const cosineDistance = sql`${chunks.embedding} <=> ${JSON.stringify(queryEmbedding)}`;
+  // Vector Score (Semantic Match: 0 to 1)
+  const vectorScore = sql<number>`1 - (${chunks.embedding} <=> ${JSON.stringify(queryEmbedding)})`;
+
+  // Full-Text Search Score (BM25 Exact keyword Match)
+  // to_tsvector parses the chunk, plaininto_tsquery parses the user's raw text safely
+  const textScore = sql<number>`ts_rank(to_tsvector('english', ${chunks.content}), plaininto_tsquery('english', ${query}))`;
+
+  // Combined Score (Weighted: 70% Semantic, 30% Exact Match)
+  const combinedScore =
+    sql<number>`(${vectorScore} * 0.7) + (${textScore} * 0.3)`.as("similarity");
 
   // Let Postgres do the math and sorting
-  const results = (await db
+  const dbResults = (await db
     .select({
       id: chunks.id,
       content: chunks.content,
       documentId: chunks.documentId,
-      similarity: sql<number>`1 - (${cosineDistance})`.as("similarity"),
+      similarity: combinedScore,
     })
     .from(chunks)
     // FIX 1: eq() is properly called with both the column and the variable
     .where(eq(chunks.userId, userId))
-    .orderBy(cosineDistance)
-    .limit(limit)) as SearchResult[];
+    .orderBy(sql`${combinedScore} DESC`)
+    .limit(dbLimit)) as SearchResult[];
 
-  if (results.length === 0) {
+  if (dbResults.length === 0) {
     return { status: "NO_ANSWER", chunks: [] };
   }
 
-  const [topResult] = results;
+  console.log(` Stage 2: Reranking ${dbResults.length} chunks with Cohere...`);
 
-  if (!topResult) {
-    return { status: "NO_ANSWER", chunks: [] };
+  // Extract just the text content to send to the Reranker
+  const documentTexts = dbResults.map((chunk) => chunk.content);
+
+  // Call COhere's Rerank v3 API
+  const rerankedResponse = await cohere.rerank({
+    model: "rerank-english-v3.0",
+    query: query,
+    documents: documentTexts,
+    topN: finalLimit,
+  });
+
+  // Map Cohere's responses back to our original database objects
+  const finalChunks: SearchResult[] = rerankedResponse.results.map(
+    (rerankedItem) => {
+      const originalChunk = dbResults[rerankedItem.index];
+
+      if (!originalChunk) {
+        throw new Error(
+          `Failed to find original chunk at index ${rerankedItem.index}`,
+        );
+      }
+
+      return {
+        id: originalChunk.id,
+        content: originalChunk.content,
+        documentId: originalChunk.documentId,
+        similarity: rerankedItem.relevanceScore,
+      };
+    },
+  );
+
+  const [topChunk] = finalChunks;
+
+  if (!topChunk) {
+    throw new Error("No reranked results found");
   }
 
-  // FIX 2: We use to get the similarity of the FIRST item in the array
-  const topScore = topResult.similarity;
-  console.log(` Top match score: ${topScore.toFixed(3)}`);
+  const topScore = topChunk.similarity;
+  console.log(` Top reranked match score: ${topScore.toFixed(3)}`);
 
   if (topScore < 0.5) {
-    console.log(` Score too low. Discarding results.`);
+    console.log(` Reranker score too low. Discarding results.`);
     return { status: "NO_ANSWER", chunks: [] };
   }
 
   // We check 'chunk.similarity', not 'results.similarity'
-  const usableChunks = results.filter((chunk) => chunk.similarity >= 0.5);
+  const usableChunks = finalChunks.filter((chunk) => chunk.similarity >= 0.5);
 
   if (topScore >= 0.8) {
     console.log(` High confidence match found!`);
