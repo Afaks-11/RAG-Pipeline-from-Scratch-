@@ -1,52 +1,69 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CONFIG } from "../config/config.js";
 
-const genAI = new GoogleGenerativeAI(CONFIG.API_KEY as string);
-const model = genAI.getGenerativeModel({ model: "gemini-embedding-001 " }); // or gemini-embedding-2-preview
-
-export async function embedTexts(texts: string[]): Promise<number[][]> {
-  const requests = texts.map((text) => ({
-    content: { role: "user", parts: [{ text }] },
-  }));
-
-  const response = await model.batchEmbedContents({ requests });
-
-  return response.embeddings.map((item) => item.values);
-}
-
-export async function embedQuery(query: string): Promise<number[]> {
-  const response = await model.embedContent(query);
-  return response.embedding.values;
-}
-
-// 1. Add a simple sleep helper at the top or inside the file
+// Delay helper to respect Voyage's 3 RPM limit
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export async function embedQuery(query: string): Promise<number[]> {
+  const response = await fetch("https://api.voyageai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.VOYAGE_API_KEY}`,
+    },
+    body: JSON.stringify({
+      input: [query],
+      model: "voyage-3",
+    }),
+  });
+
+  const data = await response.json();
+  return data.data.embedding;
+}
+
+/**
+ * Generates vectors for a batch of documents, pausing to respect rate limits.
+ */
 export async function embedBatch(
   texts: string[],
-  batchSize = 100,
+  batchSize = 70, // Voyage can take up to 128 per batch
 ): Promise<number[][]> {
   const allEmbeddings: number[][] = [];
-  // Keep batch size under the 100/minute limit
-  const BATCH_SIZE = 90;
-  // Wait slightly longer than 60 seconds to ensure the quota completely resets
-  const DELAY_MS = 70000;
+  const DELAY_MS = 61000; // 61 seconds ensures we stay under 3 requests per minute
 
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize);
-    const currentBatchNum = Math.floor(i / BATCH_SIZE) + 1;
-    const totalBatches = Math.ceil(texts.length / BATCH_SIZE);
+    const currentBatchNum = Math.floor(i / batchSize) + 1;
+    const totalBatches = Math.ceil(texts.length / batchSize);
+
     console.log(
       `      -> Processing batch ${currentBatchNum} of ${totalBatches} (${batch.length} chunks)...`,
     );
 
-    const embeddings = await embedTexts(batch);
+    const response = await fetch("https://api.voyageai.com/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.VOYAGE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        input: batch,
+        model: "voyage-3",
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.data) {
+      throw new Error(`Voyage API Error: ${JSON.stringify(data)}`);
+    }
+
+    const embeddings = data.data.map((item: any) => item.embedding);
     allEmbeddings.push(...embeddings);
 
-    // If we still have more chunks to process, we MUST pause to respect the rate limit
+    // If we have more chunks to process, we MUST pause to respect the 3 RPM limit
     if (i + batchSize < texts.length) {
       console.log(
-        `Processed ${i + batch.length} chunks. Pausing  for 65 seconds to respect rate limits... `,
+        `      ⏳ Pausing for 61 seconds to respect Voyage free tier limits... `,
       );
       await delay(DELAY_MS);
     }
@@ -54,3 +71,5 @@ export async function embedBatch(
 
   return allEmbeddings;
 }
+
+export const embedTexts = embedBatch;

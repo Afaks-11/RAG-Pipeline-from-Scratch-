@@ -23,7 +23,8 @@ export const chunks = pgTable(
       .notNull(),
     chunkIndex: integer("chunk_index").notNull(),
     content: text("content").notNull(),
-    embedding: halfvec("embedding", { dimensions: 3072 }).notNull(),
+    // CRITICAL FIX: Voyage-3 uses 1024 dimensions!
+    embedding: halfvec("embedding", { dimensions: 1024 }).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => {
