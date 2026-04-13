@@ -40,16 +40,14 @@ export async function insertWithVersioning(
     const docIdsToDelete = docsToDelete.map((doc) => doc.id);
 
     console.log(
-      `      🗑️ Found old versions: ${docsToDelete.map((d) => d.title).join(", ")}`,
+      `       Found old versions: ${docsToDelete.map((d) => d.title).join(", ")}`,
     );
-    console.log(`      🗑️ Deleting old chunks and document records...`);
+    console.log(`       Deleting old chunks and document records...`);
 
     await db.delete(chunks).where(inArray(chunks.documentId, docIdsToDelete));
     await db.delete(documents).where(inArray(documents.id, docIdsToDelete));
   } else {
-    console.log(
-      `      ✨ No previous versions found. Proceeding as new upload.`,
-    );
+    console.log(`       No previous versions found. Proceeding as new upload.`);
   }
 
   // Insert the new document
@@ -61,8 +59,8 @@ export async function insertWithVersioning(
     .insert(documents)
     .values({
       user_id: userId,
-      document_name: fileName, // 👈 FIXED: Changed from 'title' to 'document_name'
-      metadata: metadata, // 👈 FIXED: Removed 'content' as it's not in your documents schema
+      document_name: fileName, // FIXED: Changed from 'title' to 'document_name'
+      metadata: metadata, //  FIXED: Removed 'content' as it's not in your documents schema
     })
     .returning({ id: documents.id });
 
@@ -93,6 +91,6 @@ export async function insertWithVersioning(
   await db.insert(chunks).values(chunksToInsert);
 
   console.log(
-    `      ✅ Successfully saved ${fileName} and ${chunksToInsert.length} vectorized chunks!`,
+    `       Successfully saved ${fileName} and ${chunksToInsert.length} vectorized chunks!`,
   );
 }

@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx tsx src/rag.ts",
-    "seed": "tsx src/seed.ts"
+    "seed": "npx tsx src/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -24,7 +24,9 @@
     "cohere-ai": "^8.0.0",
     "dotenv": "^17.4.1",
     "drizzle-orm": "^0.45.2",
+    "groq-sdk": "^1.1.2",
     "pdf-parse": "^2.4.5",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "redis": "^5.11.0"
   }
 }
