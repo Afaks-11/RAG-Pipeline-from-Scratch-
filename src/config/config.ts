@@ -4,4 +4,5 @@ dotenv.config();
 export const CONFIG = {
   GROQ: process.env.GROQ_API_KEY,
   VOYAGE: process.env.VOYAGE_API_KEY,
+  JWT: process.env.JWT_SECRET,
 };
