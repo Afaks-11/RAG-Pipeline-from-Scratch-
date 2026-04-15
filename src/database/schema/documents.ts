@@ -1,7 +1,7 @@
 import {
   pgTable,
   uuid,
-  varchar,
+  text,
   integer,
   jsonb,
   timestamp,
@@ -15,7 +15,8 @@ export const documents = pgTable("documents", {
   user_id: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
-  document_name: varchar("document_name", { length: 255 }).notNull(),
+  document_name: text("document_name").notNull(),
+  status: text("status").notNull().default("processing"),
   version: integer("version").default(1).notNull(),
   metadata: jsonb("metadata"),
   createdAt: timestamp("creted_at").defaultNow().notNull(),
