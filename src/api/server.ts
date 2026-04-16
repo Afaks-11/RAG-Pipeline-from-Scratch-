@@ -27,9 +27,6 @@ const apiLimiter = ratelimit({
 
 app.use("api", apiLimiter);
 
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "Ok", message: "SaaS Backend is alive" });
-});
 
 // If anything crashes in our routes, this catches it instead of killing the Node process
 app.use(
@@ -49,8 +46,11 @@ app.use(
     });
   },
 );
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "Ok", message: "SaaS Backend is alive" });
+});
 
-app.use("api/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 
 app.listen(port, () => {
   console.log(`server running on port ${port}`);

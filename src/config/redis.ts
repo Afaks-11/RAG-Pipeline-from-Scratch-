@@ -13,3 +13,5 @@ export async function connectRedis() {
     console.warn("Redis failed to connect, continuing without cache");
   }
 }
+
+connectRedis();

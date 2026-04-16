@@ -1,10 +1,13 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import * as z from "zod";
 
 import { CONFIG } from "../../config/config.js";
 import { eq } from "drizzle-orm";
 import { db } from "../../database/index.js";
 import { users } from "../../database/schema/users.js";
+
+const Email = z.email({ pattern: z.regexes.unicodeEmail });
 
 export class AuthService {
   /**
@@ -15,7 +18,8 @@ export class AuthService {
       .select()
       .from(users)
       .where(eq(users.email, email));
-    if (existingUser) {
+
+    if (existingUser.length > 0) {
       throw new Error("EMAIL IN USE");
     }
 
