@@ -11,7 +11,7 @@ async function run() {
       .insert(users)
       .values({
         email: `testuser_${Date.now()}@example.com`,
-        password: "securepassword123",
+        passwordHash: "securepassword123",
       })
       .returning({ id: users.id });
 

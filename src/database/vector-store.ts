@@ -1,12 +1,10 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 
 import { db } from "./index.js";
 import { chunks } from "./schema/chunks.js";
 import { embedBatch } from "../embedding/embedding.js";
 import { CONFIG } from "../config/config.js";
 
-import type { Chunk } from "../chunk/interface/chunk.interface.js";
-import type { StoredDocument } from "./interface/storeDocument.interface.js";
 import type { SearchResult } from "./interface/searchResult.interface.js";
 import type { RetrievalResponse } from "./interface/retrievalResponse.interface.js";
 
@@ -53,7 +51,7 @@ export async function search(
       similarity: combinedScore,
     })
     .from(chunks)
-    .where(eq(chunks.userId, userId))
+    .where(and(eq(chunks.userId, userId)))
     .orderBy(sql`${combinedScore} DESC`)
     .limit(dbLimit)) as SearchResult[];
 

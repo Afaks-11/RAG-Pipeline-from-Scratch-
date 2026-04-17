@@ -4,9 +4,15 @@ import cors from "cors";
 import ratelimit from "express-rate-limit";
 
 import authRoutes from "./routes/auth.routes.js";
+import documentRoutes from "./routes/documents.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
+import { configurePassport } from "./config/passport.js";
+import passport from "passport";
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
+
+configurePassport();
 
 app.use(helmet());
 app.use(
@@ -27,7 +33,6 @@ const apiLimiter = ratelimit({
 
 app.use("api", apiLimiter);
 
-
 // If anything crashes in our routes, this catches it instead of killing the Node process
 app.use(
   (
@@ -46,11 +51,14 @@ app.use(
     });
   },
 );
+app.use(passport.initialize());
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "Ok", message: "SaaS Backend is alive" });
 });
 
 app.use("/api/auth", authRoutes);
+app.use("api/v1/documents", documentRoutes);
+app.use("/api/v1/chat", chatRoutes);
 
 app.listen(port, () => {
   console.log(`server running on port ${port}`);
