@@ -57,7 +57,7 @@ export class AuthService {
         email: user.email,
       },
       CONFIG.JWT || "",
-      { expiresIn: "3600" },
+      { expiresIn: "1h" },
     );
 
     return { user, token };

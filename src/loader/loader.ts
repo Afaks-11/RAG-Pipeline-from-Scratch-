@@ -3,11 +3,18 @@ import path from "path";
 // @ts-ignore - The TS types are broken and claim this isn't callable, but it is.
 import { PDFParse } from "pdf-parse";
 
+import { eq } from "drizzle-orm";
+import { db } from "../database/index.js";
+import { documents } from "../database/schema/documents.js";
 import { chunkText } from "../chunk/chunker.js";
 import { embedBatch } from "../embedding/embedding.js";
 import { insertWithVersioning } from "../database/queries/queries.js";
 
-export async function ingestPDF(filePath: string, userId: string) {
+export async function ingestPDF(
+  filePath: string,
+  userId: string,
+  documentId: string,
+) {
   console.log(`[1/5] Loading file from disk: ${filePath}...`);
   const dataBuffer = fs.readFileSync(filePath);
 
@@ -44,14 +51,13 @@ export async function ingestPDF(filePath: string, userId: string) {
   const fileName = path.basename(filePath);
   await insertWithVersioning(
     userId,
-    fileName,
-    rawText,
+    documentId,
     documentMetadata,
     chunkStrings,
     embeddings,
   );
 
   console.log(
-    `\n🎉 Success! Document fully ingested and secured in vector database.`,
+    `\n Success! Document fully ingested and secured in vector database.`,
   );
 }

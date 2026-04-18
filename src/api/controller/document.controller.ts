@@ -16,19 +16,51 @@ export class DocumentController {
         return;
       }
 
-      //  Create the "PROCESSING" row in the database
-      const [newDocument] = await db
-        .insert(documents)
-        .values({
-          user_id: user.userId,
-          document_name: file.originalname,
-          status: "PROCESSING",
-        })
-        .returning();
+      // Check if this document name already exists for this user
+      const [existingDoc] = await db
+        .select()
+        .from(documents)
+        .where(
+          and(
+            eq(documents.userId, user.userId),
+            eq(documents.documentName, file.originalname)
+          )
+        );
 
-      // Drop the job in the queue (pass the local file path, NOT the file buffer)
+      let documentIdToProcess: string;
+      let documentData;
+
+      if (existingDoc) {
+        // DOCUMENT EXISTS: Bump the version up and set back to PROCESSING!
+        const [updatedDoc] = await db
+          .update(documents)
+          .set({
+            status: "PROCESSING",
+            version: (existingDoc.version || 1) + 1, // Dynamically v1 -> v2 -> v3
+          })
+          .where(eq(documents.id, existingDoc.id))
+          .returning();
+
+        documentIdToProcess = updatedDoc!.id;
+        documentData = updatedDoc;
+      } else {
+        // NEW DOCUMENT: Insert as version 1
+        const [newDoc] = await db
+          .insert(documents)
+          .values({
+            userId: user.userId,
+            documentName: file.originalname,
+            status: "PROCESSING",
+            version: 1,
+          })
+          .returning();
+
+        documentIdToProcess = newDoc!.id;
+        documentData = newDoc;
+      }
+      // Drop the job in the queue (pass the local file path, NOT the file buffer) and the correct ID
       await pdfQueue.add("process-pdf", {
-        documentId: newDocument!.id,
+        documentId: documentIdToProcess,
         userId: user.userId,
         fileUrl: file.path, // e.g., "temp/1b9d6bcd..."
       });
@@ -36,7 +68,7 @@ export class DocumentController {
       //  Instantly reply to the user without waiting for Voyage AI
       res.status(202).json({
         message: "Document uploaded and queued for processing",
-        document: newDocument,
+        document: documentData,
       });
     } catch (error) {
       console.error("[DocumentController] Upload error:", error);
@@ -51,7 +83,7 @@ export class DocumentController {
       const userDocs = await db
         .select()
         .from(documents)
-        .where(eq(documents.user_id, user.userId));
+        .where(eq(documents.userId, user.userId));
 
       res.status(200).json(userDocs);
     } catch (error) {
@@ -66,7 +98,7 @@ export class DocumentController {
 
       const [deleteDoc] = await db
         .delete(documents)
-        .where(and(eq(documents.user_id, user.userId)))
+        .where(and(eq(documents.userId, user.userId)))
         .returning();
 
       if (!deleteDoc) {

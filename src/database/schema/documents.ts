@@ -12,11 +12,11 @@ import { version } from "node:os";
 // The Documents Table
 export const documents = pgTable("documents", {
   id: uuid("id").defaultRandom().primaryKey(),
-  user_id: uuid("user_id")
+  userId: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
-  document_name: text("document_name").notNull(),
-  status: text("status").notNull().default("processing"),
+  documentName: text("document_name").notNull(),
+  status: text("status").notNull().default("PROCESSING"),
   version: integer("version").default(1).notNull(),
   metadata: jsonb("metadata"),
   createdAt: timestamp("creted_at").defaultNow().notNull(),

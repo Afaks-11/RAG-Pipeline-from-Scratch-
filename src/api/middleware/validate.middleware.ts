@@ -14,8 +14,14 @@ export const validate =
 
       // Zod v4 returns the transformed data; we re-assign it to req
       req.body = result.body;
-      req.query = result.query as any;
       req.params = result.params as any;
+
+      Object.defineProperty(req, "query", {
+        value: result.query,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
       next();
     } catch (error) {
       if (error instanceof ZodError) {

@@ -9,6 +9,7 @@ import { ingestPDF } from "../loader/loader.js";
 
 const redisConnection = new Redis(
   process.env.REDIS_URL || "redis://localhost:6379",
+  { maxRetriesPerRequest: null },
 );
 
 /**
@@ -37,7 +38,7 @@ export const pdfworker = new Worker(
 
       // Fetch and Parse PDF
       console.log(`[Worker] Extracting text...`);
-      await ingestPDF(fileUrl, userId);
+      await ingestPDF(fileUrl, userId, documentId);
 
       //  Mark Document as "COMPLETED" in the database
       await db

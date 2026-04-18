@@ -3,6 +3,9 @@ import { Redis } from "ioredis";
 
 const redisConnection = new Redis(
   process.env.Redis_URL || "redis://localhost:6379",
+  {
+    maxRetriesPerRequest: null,
+  },
 );
 
 export const pdfQueue = new Queue("pdf-ingestion-queue", {

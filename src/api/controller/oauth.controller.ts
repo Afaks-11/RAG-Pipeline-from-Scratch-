@@ -17,7 +17,7 @@ export class OAuthController {
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       CONFIG.JWT!,
-      { expiresIn: "3600" },
+      { expiresIn: "1h" },
     );
 
     // 2. Redirect to the frontend, passing the token securely

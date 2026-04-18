@@ -2,7 +2,11 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import ratelimit from "express-rate-limit";
+import { ExpressAdapter } from "@bull-board/express";
+import { createBullBoard } from "@bull-board/api";
+import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 
+import { pdfQueue } from "./config/queue.js";
 import authRoutes from "./routes/auth.routes.js";
 import documentRoutes from "./routes/documents.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
@@ -12,6 +16,13 @@ import passport from "passport";
 const app = express();
 const port = process.env.PORT || 3000;
 
+const serverAdapter = new ExpressAdapter();
+serverAdapter.setBasePath("/admin/queues");
+
+createBullBoard({
+  queues: [new BullMQAdapter(pdfQueue)],
+  serverAdapter: serverAdapter,
+});
 configurePassport();
 
 app.use(helmet());
@@ -55,9 +66,9 @@ app.use(passport.initialize());
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "Ok", message: "SaaS Backend is alive" });
 });
-
+app.use("/admin/queues", serverAdapter.getRouter());
 app.use("/api/auth", authRoutes);
-app.use("api/v1/documents", documentRoutes);
+app.use("/api/v1/documents", documentRoutes);
 app.use("/api/v1/chat", chatRoutes);
 
 app.listen(port, () => {

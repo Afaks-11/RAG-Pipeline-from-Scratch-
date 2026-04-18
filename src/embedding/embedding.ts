@@ -63,7 +63,7 @@ export async function embedBatch(
     // If we have more chunks to process, we MUST pause to respect the 3 RPM limit
     if (i + batchSize < texts.length) {
       console.log(
-        `      ⏳ Pausing for 61 seconds to respect Voyage free tier limits... `,
+        `       Pausing for 61 seconds to respect Voyage free tier limits... `,
       );
       await delay(DELAY_MS);
     }
