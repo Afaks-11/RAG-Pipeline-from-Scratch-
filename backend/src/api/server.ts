@@ -67,7 +67,7 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "Ok", message: "SaaS Backend is alive" });
 });
 app.use("/admin/queues", serverAdapter.getRouter());
-app.use("/api/auth", authRoutes);
+app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/documents", documentRoutes);
 app.use("/api/v1/chat", chatRoutes);
 

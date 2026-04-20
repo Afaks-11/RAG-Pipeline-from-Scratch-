@@ -9,12 +9,12 @@ export class ChatController {
   static async chat(req: Request, res: Response): Promise<void> {
     try {
       const user = req.user as { userId: string };
-      const { message } = req.body;
+      const { query } = req.body;
 
-      if (!message) {
+      if (!query) {
         res
           .status(400)
-          .json({ error: "Message is required in the request body" });
+          .json({ error: "Query is required in the request body" });
         return;
       }
 
@@ -22,7 +22,7 @@ export class ChatController {
         `[ChatController] Processing message for user ${user.userId}`,
       );
 
-      const pipelineResponse = await runChatPipeline(message, user.userId);
+      const pipelineResponse = await runChatPipeline(query, user.userId);
 
       // Handle potential errors from your pipeline
       if (pipelineResponse.error) {
@@ -31,7 +31,12 @@ export class ChatController {
       }
 
       // Send the REAL AI answer to the frontend
-      res.status(200).json({ reply: pipelineResponse.answer });
+      res
+        .status(200)
+        .json({
+          reply: pipelineResponse.answer,
+          sources: pipelineResponse.sources,
+        });
     } catch (error) {
       console.error("[ChatController] Chat error:", error);
       res
