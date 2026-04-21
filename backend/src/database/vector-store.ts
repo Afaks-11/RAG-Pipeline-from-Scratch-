@@ -13,6 +13,7 @@ import type { RetrievalResponse } from "./interface/retrievalResponse.interface.
  * Stage 2: Reranking with Voyage AI (Filters down to top 3)
  * @param query The user's search question
  * @param userId The ID of the user searching (to prevent data leaks)
+ * @param documentId The ID of the document to search
  * @param dbLimit The top 20 fetch from postgres
  * @param finalLimit The final 3 fetch by Voyage AI
  * @returns limit How many chunks to return
@@ -20,6 +21,7 @@ import type { RetrievalResponse } from "./interface/retrievalResponse.interface.
 export async function search(
   query: string,
   userId: string,
+  documentId?: string,
   dbLimit: number = 20,
   finalLimit: number = 3,
 ): Promise<RetrievalResponse> {
@@ -51,7 +53,7 @@ export async function search(
       similarity: combinedScore,
     })
     .from(chunks)
-    .where(and(eq(chunks.userId, userId)))
+    .where(and(eq(chunks.userId, userId),  documentId ? eq(chunks.documentId, documentId) : undefined))
     .orderBy(sql`${combinedScore} DESC`)
     .limit(dbLimit)) as SearchResult[];
 
@@ -115,7 +117,7 @@ export async function search(
   const [score] = usableChunks;
   const topScore = score?.similarity || 0;
 
-  if (topScore > 0.6) {
+  if (topScore > 0.4) {
     return { status: "CONFIDENT", chunks: usableChunks };
   } else {
     console.log(` Medium/Low confidence. Proceeding with caution.`);

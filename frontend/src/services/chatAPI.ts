@@ -1,5 +1,5 @@
 import { fetchClient } from "./apiClient";
-import type { ChatRequestPayload } from "../types";
+import type { ChatMessage, ChatRequestPayload } from "../types";
 
 interface ChatAPIResponse {
   reply: string;
@@ -13,5 +13,14 @@ export const chatAPI = {
       method: "POST",
       body: JSON.stringify({ query, documentId } satisfies ChatRequestPayload),
     });
+  },
+
+  getHistory: (documentId: string) => {
+    return fetchClient<ChatMessage[]>(
+      `/chat/history?documentId=${documentId}`,
+      {
+        method: "GET",
+      },
+    );
   },
 };

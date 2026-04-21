@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 import { db } from "../../database/index.js";
 import { chatHistory } from "../../database/schema/chatHistory.js";
@@ -9,7 +9,7 @@ export class ChatController {
   static async chat(req: Request, res: Response): Promise<void> {
     try {
       const user = req.user as { userId: string };
-      const { query } = req.body;
+      const { query, documentId } = req.body;
 
       if (!query) {
         res
@@ -22,7 +22,11 @@ export class ChatController {
         `[ChatController] Processing message for user ${user.userId}`,
       );
 
-      const pipelineResponse = await runChatPipeline(query, user.userId);
+      const pipelineResponse = await runChatPipeline(
+        query,
+        user.userId,
+        documentId,
+      );
 
       // Handle potential errors from your pipeline
       if (pipelineResponse.error) {
@@ -31,12 +35,10 @@ export class ChatController {
       }
 
       // Send the REAL AI answer to the frontend
-      res
-        .status(200)
-        .json({
-          reply: pipelineResponse.answer,
-          sources: pipelineResponse.sources,
-        });
+      res.status(200).json({
+        reply: pipelineResponse.answer,
+        sources: pipelineResponse.sources,
+      });
     } catch (error) {
       console.error("[ChatController] Chat error:", error);
       res
@@ -49,11 +51,24 @@ export class ChatController {
   static async getHistory(req: Request, res: Response): Promise<void> {
     try {
       const user = req.user as { userId: string };
+      const documentId = req.query.documentId as string;
+
+      if (!documentId) {
+        res
+          .status(400)
+          .json({ error: "documentId is required to fetch history" });
+        return;
+      }
 
       const history = await db
         .select()
         .from(chatHistory)
-        .where(eq(chatHistory.userId, user.userId))
+        .where(
+          and(
+            eq(chatHistory.userId, user.userId),
+            eq(chatHistory.documentId, documentId),
+          ),
+        )
         .orderBy(desc(chatHistory.createdAt)); // Newest messages first
 
       res.status(200).json(history);

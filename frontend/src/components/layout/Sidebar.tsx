@@ -79,7 +79,11 @@ export default function Sidebar({ selectedDocId, onSelectDoc }: SideBarProps) {
           <DocumentList
             documents={documents}
             selectedDocumentId={selectedDocId}
-            onSelectDocument={onSelectDoc}
+            onSelectDocument={(id: string) => {
+              const doc = documents.find((d: any) => d.id === id);
+              const docName = doc?.documentName || "unknown Document";
+              onSelectDoc(id, docName);
+            }}
           />
         )}
       </div>

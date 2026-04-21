@@ -7,27 +7,50 @@ export function useChat() {
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loadHistory = async (documentId: string) => {
+    setMessages([]); // Clear the screen instantly
+    setError(null);
+
+    try {
+      // Fetch the history for this specific document
+      const history = await chatAPI.getHistory(documentId);
+
+      // Ensure the history maps to your UI's ChatMessage format
+      const formattedHistory = history.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+        // Optional: If you stored citations in the DB, map them here. Otherwise, leave empty.
+        citations: [],
+      }));
+
+      setMessages(formattedHistory);
+    } catch (err: any) {
+      console.error("Failed to load history", err);
+      setError("Failed to load chat history for this document.");
+    }
+  };
+
   const sendMessage = async (query: string, documentId: string) => {
-    // 1. Instantly push the user's message to the UI
+    // Instantly push the user's message to the UI
     const userMessage: ChatMessage = { role: "user", content: query };
     setMessages((prev) => [...prev, userMessage]);
 
-    // 2. Trigger the "AI is thinking..." visual state
+    // Trigger the "AI is thinking..." visual state
     setIsTyping(true);
     setError(null);
 
     try {
-      // 3. Make the actual POST request to your Express /chat endpoint
+      // Make the actual POST request to your Express /chat endpoint
       const rawResponse = await chatAPI.sendMessage(query, documentId);
 
-      // 4. Format the response to exactly what ChatBubble.tsx expects
+      // Format the response to exactly what ChatBubble.tsx expects
       const formattedMessage: ChatMessage = {
         role: "assistant",
         content: rawResponse.reply || "No response text received from backend.",
         citations: rawResponse.sources || [],
       };
 
-      // 5. Append the formatted AI response to the screen
+      // Append the formatted AI response to the screen
       setMessages((prev) => [...prev, formattedMessage]);
     } catch (err: any) {
       console.error("Chat Error:", err);
@@ -57,5 +80,6 @@ export function useChat() {
     error,
     sendMessage,
     clearChat,
+    loadHistory,
   };
 }

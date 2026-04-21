@@ -1,5 +1,5 @@
 import Groq from "groq-sdk";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 import { db } from "../index.js";
 import { chatHistory } from "../schema/chatHistory.js";
@@ -14,13 +14,19 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 export async function rewriteQuery(
   currentQuery: string,
   userId: string,
+  documentId: string,
   historyLimit: number = 5,
 ): Promise<string> {
-  // Fetch the last historyLimit messages for this specific user
+  // Fetch the last historyLimit messages for this specific user only
   const history = await db
     .select()
     .from(chatHistory)
-    .where(eq(chatHistory.userId, userId))
+    .where(
+      and(
+        eq(chatHistory.userId, userId),
+        eq(chatHistory.documentId, documentId),
+      ),
+    )
     .orderBy(desc(chatHistory.createdAt))
     .limit(historyLimit);
 
@@ -81,10 +87,12 @@ export async function saveChatMessage(
   userId: string,
   role: "user" | "assistant",
   content: string,
+  documentId: string,
 ) {
   await db.insert(chatHistory).values({
     userId,
     role,
     content,
+    documentId,
   });
 }

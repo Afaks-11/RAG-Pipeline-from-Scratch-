@@ -5,8 +5,11 @@ import ChatBubble from "../chat/ChatBubble";
 import ChatInput from "../chat/ChatInput";
 import type { MainStageProps } from "../../types";
 
-export default function MainStage({ selectedDocId }: MainStageProps) {
-  const { messages, isTyping, sendMessage } = useChat();
+export default function MainStage({
+  selectedDocId,
+  selectedDocName,
+}: MainStageProps) {
+  const { messages, isTyping, sendMessage, loadHistory } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleSend = (text: string) => {
@@ -22,17 +25,30 @@ export default function MainStage({ selectedDocId }: MainStageProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    if (selectedDocId) {
+      loadHistory(selectedDocId);
+    }
+  }, [selectedDocId]);
+
   return (
     <main className="flex-1 flex flex-col relative bg-white h-screen">
-      {/* Top Header */}
-      <header className="h-19 border-b border-gray-100 flex items-center px-8 bg-white shrink-0">
+      {/* Top Header - Now handles the Document Name display! */}
+      <header className="h-19 border-b border-gray-100 flex flex-col justify-center px-8 bg-white shrink-0">
         <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-gray-400" />
           Knowledge Base Chat
         </h2>
+        {selectedDocName && (
+          <p className="text-sm text-blue-600 flex items-center ml-7 mt-0.5">
+            Chatting with:{" "}
+            <span className="font-semibold ml-1 truncate max-w-md">
+              {selectedDocName}
+            </span>
+          </p>
+        )}
       </header>
 
-      {/* Chat History Area */}
       <div className="flex-1 overflow-y-auto p-8 bg-gray-50/30">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
@@ -52,8 +68,6 @@ export default function MainStage({ selectedDocId }: MainStageProps) {
             {messages.map((msg, idx) => (
               <ChatBubble key={idx} message={msg} />
             ))}
-
-            {/* Visual indicator that AI is processing */}
             {isTyping && (
               <div className="flex w-full mb-6 justify-start">
                 <div className="bg-gray-100 text-gray-500 rounded-2xl py-3 px-5 text-sm rounded-tl-sm animate-pulse">
@@ -61,13 +75,11 @@ export default function MainStage({ selectedDocId }: MainStageProps) {
                 </div>
               </div>
             )}
-            {/* Invisible anchor to scroll to */}
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
-      {/* Fixed Bottom Input */}
       <div className="bg-white border-t border-gray-100 shrink-0">
         <ChatInput
           onSend={handleSend}

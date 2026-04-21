@@ -19,9 +19,10 @@ export interface ChatRequestPayload {
 
 export interface SideBarProps {
   selectedDocId: string | null;
-  onSelectDoc: (id: string) => void;
+  onSelectDoc: (id: string, docName: string) => void;
 }
 
 export interface MainStageProps {
   selectedDocId: string | null;
+  selectedDocName: string | null;
 }
