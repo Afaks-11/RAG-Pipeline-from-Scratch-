@@ -7,10 +7,11 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
+
 import { users } from "./users.js";
 import { documents } from "./documents.js";
 
-// The Chunks Table (Vector Store)
+
 export const chunks = pgTable(
   "chunks",
   {
@@ -23,16 +24,13 @@ export const chunks = pgTable(
       .notNull(),
     chunkIndex: integer("chunk_index").notNull(),
     content: text("content").notNull(),
-    // CRITICAL FIX: Voyage-3 uses 1024 dimensions!
     embedding: halfvec("embedding", { dimensions: 1024 }).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => {
-    // Defining the fast-search indexes here
     return {
       userIdx: index("idx_chunks_user_id").on(table.userId),
       docIdx: index("idx_chunks_document_id").on(table.documentId),
-      // The special HNSW vector index for lightning-fast AI similarity search
       embeddingIdx: index("idx_chunks_embedding").using(
         "hnsw",
         table.embedding.op("halfvec_cosine_ops"),

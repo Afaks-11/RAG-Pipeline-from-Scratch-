@@ -7,15 +7,18 @@ dotenv.config();
 async function setupDatabase() {
   console.log("Connecting to Postgres...");
   const pool = new pg.Pool({
-    connectionString:
-      process.env.DATABASE_URL ||
-      "postgres://postgres:password@localhost:5432/RAG_engine",
+    connectionString: process.env.DATABASE_URL,
   });
 
-  await pool.query("CREATE EXTENSION IF NOT EXISTS vector;");
-  console.log("pgVector extension enabled!");
-
-  process.exit(0);
+  try {
+    await pool.query("CREATE EXTENSION IF NOT EXISTS vector;");
+    console.log("pgVector extension enabled!");
+  } catch (error) {
+    console.error("Failed to enable pgVector:", error);
+    process.exit(1);
+  } finally {
+    await pool.end();
+  }
 }
 
 setupDatabase();

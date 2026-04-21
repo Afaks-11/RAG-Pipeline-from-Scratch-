@@ -7,9 +7,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { users } from "./users.js";
-import { version } from "node:os";
 
-// The Documents Table
 export const documents = pgTable("documents", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
@@ -19,5 +17,6 @@ export const documents = pgTable("documents", {
   status: text("status").notNull().default("PROCESSING"),
   version: integer("version").default(1).notNull(),
   metadata: jsonb("metadata"),
-  createdAt: timestamp("creted_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
