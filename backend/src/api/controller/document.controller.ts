@@ -3,7 +3,7 @@ import { eq, and } from "drizzle-orm";
 
 import { db } from "../../database/index.js";
 import { documents } from "../../database/schema/documents.js";
-import { pdfQueue } from "../config/queue.js";
+import { pdfQueue } from "../../config/queue.js";
 
 export class DocumentController {
   static async uploadDocument(req: Request, res: Response): Promise<void> {
@@ -16,22 +16,20 @@ export class DocumentController {
         return;
       }
 
-      // Check if this document name already exists for this user
       const [existingDoc] = await db
         .select()
         .from(documents)
         .where(
           and(
             eq(documents.userId, user.userId),
-            eq(documents.documentName, file.originalname)
-          )
+            eq(documents.documentName, file.originalname),
+          ),
         );
 
       let documentIdToProcess: string;
       let documentData;
 
       if (existingDoc) {
-        // DOCUMENT EXISTS: Bump the version up and set back to PROCESSING!
         const [updatedDoc] = await db
           .update(documents)
           .set({
@@ -44,7 +42,6 @@ export class DocumentController {
         documentIdToProcess = updatedDoc!.id;
         documentData = updatedDoc;
       } else {
-        // NEW DOCUMENT: Insert as version 1
         const [newDoc] = await db
           .insert(documents)
           .values({
@@ -94,7 +91,6 @@ export class DocumentController {
   static async deleteDocument(req: Request, res: Response): Promise<void> {
     try {
       const user = req.user as { userId: string };
-      const { id } = req.params;
 
       const [deleteDoc] = await db
         .delete(documents)
@@ -106,8 +102,6 @@ export class DocumentController {
         return;
       }
 
-      // Note: Since we set up cascading deletes in Drizzle, deleting this row
-      // automatically wipes all associated vectors in the chunks table!
       res.status(204).json();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete document" });

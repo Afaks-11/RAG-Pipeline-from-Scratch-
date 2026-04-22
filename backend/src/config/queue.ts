@@ -1,12 +1,11 @@
 import { Queue } from "bullmq";
 import { Redis } from "ioredis";
 
-const redisConnection = new Redis(
-  process.env.Redis_URL || "redis://localhost:6379",
-  {
-    maxRetriesPerRequest: null,
-  },
-);
+import { CONFIG } from "./config.js";
+
+const redisConnection = new Redis(CONFIG.REDIS_URL, {
+  maxRetriesPerRequest: null,
+});
 
 export const pdfQueue = new Queue("pdf-ingestion-queue", {
   connection: redisConnection,
@@ -16,7 +15,7 @@ export const pdfQueue = new Queue("pdf-ingestion-queue", {
       type: "exponential",
       delay: 5000,
     },
-    removeOnComplete: true, // Keep Redis memory clean after success
-    removeOnFail: false, // Keep failed jobs so you can inspect them
+    removeOnComplete: true,
+    removeOnFail: false,
   },
 });

@@ -7,10 +7,10 @@ export class OAuthController {
   static async googleCallback(req: Request, res: Response): Promise<void> {
     const user = req.user as { id: string; email: string };
 
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = CONFIG.FRONTEND_URL;
 
     if (!user) {
-      res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+      res.redirect(`${frontendUrl}/login?error=auth_failed`);
       return;
     }
 
@@ -22,6 +22,6 @@ export class OAuthController {
 
     // 2. Redirect to the frontend, passing the token securely
     // (In production, consider passing this via an HttpOnly cookie instead of URL)
-    res.redirect(`${process.env.FRONTEND_URL}/auth-success?token=${token}`);
+    res.redirect(`${frontendUrl}/auth-success?token=${token}`);
   }
 }

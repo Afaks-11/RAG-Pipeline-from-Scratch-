@@ -1,23 +1,16 @@
-import { CONFIG } from "../config/config.js";
+import { createEmbeddings } from "../api/services/voyage.service.js";
 
 // Delay helper to respect Voyage's 3 RPM limit
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const DELAY_MS = 61000; // 61 seconds ensures we stay under 3 requests per minute
 
 export async function embedQuery(query: string): Promise<number[]> {
-  const response = await fetch("https://api.voyageai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.VOYAGE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      input: [query],
-      model: "voyage-3",
-    }),
-  });
+  const [embeddings] = await createEmbeddings([query]);
+  if (!embeddings) {
+    throw new Error("No embedding returned from Voyage API");
+  }
 
-  const data = await response.json();
-  return data.data.embedding;
+  return embeddings;
 }
 
 /**
@@ -25,10 +18,9 @@ export async function embedQuery(query: string): Promise<number[]> {
  */
 export async function embedBatch(
   texts: string[],
-  batchSize = 70, // Voyage can take up to 128 per batch
+  batchSize = 70,
 ): Promise<number[][]> {
   const allEmbeddings: number[][] = [];
-  const DELAY_MS = 61000; // 61 seconds ensures we stay under 3 requests per minute
 
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize);
@@ -39,25 +31,7 @@ export async function embedBatch(
       `      -> Processing batch ${currentBatchNum} of ${totalBatches} (${batch.length} chunks)...`,
     );
 
-    const response = await fetch("https://api.voyageai.com/v1/embeddings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.VOYAGE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        input: batch,
-        model: "voyage-3",
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!data.data) {
-      throw new Error(`Voyage API Error: ${JSON.stringify(data)}`);
-    }
-
-    const embeddings = data.data.map((item: any) => item.embedding);
+    const embeddings = await createEmbeddings(batch);
     allEmbeddings.push(...embeddings);
 
     // If we have more chunks to process, we MUST pause to respect the 3 RPM limit

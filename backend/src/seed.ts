@@ -1,6 +1,6 @@
 import { db } from "./database/index.js";
 import { users } from "./database/schema/users.js";
-import { ingestPDF } from "./loader/loader.js";
+import { ingestPDF } from "./ingestion/ingestion.js";
 
 async function run() {
   try {

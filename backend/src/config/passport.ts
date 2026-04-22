@@ -4,9 +4,10 @@ import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import { eq } from "drizzle-orm";
 import * as dotenv from "dotenv";
 
-import { db } from "../../database/index.js";
-import { users } from "../../database/schema/users.js";
-import { OAuthService } from "../services/oauth.service.js";
+import { db } from "../database/index.js";
+import { users } from "../database/schema/users.js";
+import { OAuthService } from "../api/services/oauth.service.js";
+import { CONFIG } from "./config.js";
 
 dotenv.config();
 
@@ -15,9 +16,9 @@ export const configurePassport = () => {
   passport.use(
     new GoogleStrategy(
       {
-        clientID: process.env.GOOGLE_CLIENT_ID!,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        callbackURL: `http://localhost:${process.env.PORT || 3000}/api/auth/google/callback`,
+        clientID: CONFIG.GOOGLE_CLIENT_ID!,
+        clientSecret: CONFIG.GOOGLE_CLIENT_SECRET!,
+        callbackURL: `http://localhost:${CONFIG.PORT}/api/auth/google/callback`,
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
@@ -33,7 +34,7 @@ export const configurePassport = () => {
   // 2. JWT STRATEGY
   const jwtOptions = {
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-    secretOrKey: process.env.JWT_SECRET || "your_super_secret_jwt_key_here",
+    secretOrKey: CONFIG.JWT,
   };
   passport.use(
     new JwtStrategy(jwtOptions, async (jwtPayload, done) => {

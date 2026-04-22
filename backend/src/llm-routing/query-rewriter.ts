@@ -1,11 +1,8 @@
-import Groq from "groq-sdk";
 import { eq, desc, and } from "drizzle-orm";
 
-import { db } from "../index.js";
-import { chatHistory } from "../schema/chatHistory.js";
-import { CONFIG } from "../../config/config.js";
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+import { db } from "../database/index.js";
+import { chatHistory } from "../database/schema/chatHistory.js";
+import { groq } from "../config/groq-client.js";
 
 /**
  * Takes the user's raw query, looks at their recent chat history,
@@ -17,7 +14,6 @@ export async function rewriteQuery(
   documentId: string,
   historyLimit: number = 5,
 ): Promise<string> {
-  // Fetch the last historyLimit messages for this specific user only
   const history = await db
     .select()
     .from(chatHistory)
@@ -38,7 +34,6 @@ export async function rewriteQuery(
   // Reverse the array so it's in chronological order (oldest to newest) for the LLM
   history.reverse();
 
-  // Format the history into a readable string
   const formattedHistory = history
     .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
     .join("\n");
@@ -78,7 +73,7 @@ export async function rewriteQuery(
     console.warn(
       ` Query Rewriter API overloaded. Falling back to original query: "${currentQuery}"`,
     );
-    // Graceful fallback: Just return the original query if Groq glitches
+
     return currentQuery;
   }
 }

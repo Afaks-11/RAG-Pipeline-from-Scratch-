@@ -1,16 +1,13 @@
 import { performance } from "perf_hooks";
-import Groq from "groq-sdk";
 
-import { routeQuery } from "../intelligence/query-router.js";
+import { routeQuery } from "../llm-routing/query-router.js";
 import {
   rewriteQuery,
   saveChatMessage,
-} from "../database/queries/query-rewriter.js";
+} from "../llm-routing/query-rewriter.js";
 import { search } from "../database/vector-store.js";
-import { CONFIG } from "../config/config.js";
 import { redisClient } from "../config/redis.js";
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+import { groq } from "../config/groq-client.js";
 
 export async function runChatPipeline(
   rawQuery: string,
@@ -149,4 +146,3 @@ export async function runChatPipeline(
     return { error: "A critical error occurred processing your request." };
   }
 }
-

@@ -5,16 +5,17 @@ import ratelimit from "express-rate-limit";
 import { ExpressAdapter } from "@bull-board/express";
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
+import passport from "passport";
 
-import { pdfQueue } from "./config/queue.js";
+import { pdfQueue } from "../config/queue.js";
 import authRoutes from "./routes/auth.routes.js";
 import documentRoutes from "./routes/documents.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
-import { configurePassport } from "./config/passport.js";
-import passport from "passport";
+import { configurePassport } from "../config/passport.js";
+import { CONFIG } from "../config/config.js";
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = CONFIG.PORT;
 
 const serverAdapter = new ExpressAdapter();
 serverAdapter.setBasePath("/admin/queues");
@@ -28,7 +29,7 @@ configurePassport();
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: CONFIG.FRONTEND_URL,
     credentials: true,
   }),
 );

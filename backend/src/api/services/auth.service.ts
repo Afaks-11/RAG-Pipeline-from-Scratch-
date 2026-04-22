@@ -7,8 +7,6 @@ import { eq } from "drizzle-orm";
 import { db } from "../../database/index.js";
 import { users } from "../../database/schema/users.js";
 
-const Email = z.email({ pattern: z.regexes.unicodeEmail });
-
 export class AuthService {
   /**
    * Hashes the password and saves the new user to the database
@@ -46,7 +44,7 @@ export class AuthService {
       throw new Error("Invalid Credentials");
     }
 
-    const isValid = bcrypt.compare(passwordRaw, user.passwordHash);
+    const isValid = await bcrypt.compare(passwordRaw, user.passwordHash);
     if (!isValid) {
       throw new Error("Invalid Credentials");
     }
@@ -56,7 +54,7 @@ export class AuthService {
         userId: user.id,
         email: user.email,
       },
-      CONFIG.JWT || "",
+      CONFIG.JWT,
       { expiresIn: "1h" },
     );
 

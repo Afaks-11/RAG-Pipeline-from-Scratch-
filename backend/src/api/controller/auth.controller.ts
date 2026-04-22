@@ -44,13 +44,13 @@ export class AuthController {
 
       const { user, token } = await AuthService.loginUser(email, password);
 
-      res.status(201).json({
+      res.status(200).json({
         message: "Login successful",
         token,
         userId: user.id,
       });
-    } catch (err: any) {
-      if (err.message === "Invalid credentials") {
+    } catch (error: any) {
+      if (error.message === "Invalid Credentials") {
         res.status(401).json({ error: "Invalid email or password" });
         return;
       }

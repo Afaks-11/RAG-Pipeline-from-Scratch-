@@ -1,8 +1,5 @@
-import Groq from "groq-sdk";
-import { CONFIG } from "../config/config.js";
 import type { RouteDecision } from "./interface/routeDecision.interface.js";
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+import { groq } from "../config/groq-client.js";
 
 export async function routeQuery(query: string): Promise<RouteDecision> {
   try {

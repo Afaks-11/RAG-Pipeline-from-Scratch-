@@ -3,12 +3,9 @@ import path from "path";
 // @ts-ignore - The TS types are broken and claim this isn't callable, but it is.
 import { PDFParse } from "pdf-parse";
 
-import { eq } from "drizzle-orm";
-import { db } from "../database/index.js";
-import { documents } from "../database/schema/documents.js";
 import { chunkText } from "../chunk/chunker.js";
 import { embedBatch } from "../embedding/embedding.js";
-import { insertWithVersioning } from "../database/queries/queries.js";
+import { insertWithVersioning } from "../database/queries.js";
 
 export async function ingestPDF(
   filePath: string,
@@ -40,7 +37,6 @@ export async function ingestPDF(
   const textChunks = chunkText(rawText, { maxChunkSize: 500, overlap: 50 });
   console.log(`      Created ${textChunks.length} chunks.`);
 
-  // Updated Log here!
   console.log(
     `[4/5] Fetching embeddings from Voyage AI (this may take a moment)...`,
   );
@@ -55,6 +51,7 @@ export async function ingestPDF(
     documentMetadata,
     chunkStrings,
     embeddings,
+    fileName,
   );
 
   console.log(

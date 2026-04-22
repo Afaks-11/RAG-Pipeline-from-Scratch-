@@ -1,7 +1,7 @@
 import { eq, and, like, inArray } from "drizzle-orm";
-import { db } from "../index.js";
-import { documents } from "../schema/documents.js";
-import { chunks } from "../schema/chunks.js";
+import { db } from "./index.js";
+import { documents } from "./schema/documents.js";
+import { chunks } from "./schema/chunks.js";
 
 export async function insertWithVersioning(
   userId: string,
@@ -9,18 +9,8 @@ export async function insertWithVersioning(
   metadata: Record<string, unknown>,
   chunkTexts: string[],
   embeddings: number[][],
+  documentName?: string,
 ) {
-  await db.transaction(async (tx) => {
-    await tx
-      .update(documents)
-      .set({ metadata: metadata })
-      .where(eq(documents.id, documentId));
-
-    await db.delete(chunks).where(eq(chunks.documentId, documentId));
-
-    await tx.insert(chunks).values(chunksToInsert);
-  });
-
   const chunksToInsert = chunkTexts.map((text, index) => {
     const currentEmbedding = embeddings[index];
 
@@ -36,10 +26,20 @@ export async function insertWithVersioning(
       chunkIndex: index,
       content: text,
       embedding: currentEmbedding,
+      documentName: documentName,
     };
   });
 
-  await db.insert(chunks).values(chunksToInsert);
+  await db.transaction(async (tx) => {
+    await tx
+      .update(documents)
+      .set({ metadata: metadata })
+      .where(eq(documents.id, documentId));
+
+    await tx.delete(chunks).where(eq(chunks.documentId, documentId));
+
+    await tx.insert(chunks).values(chunksToInsert);
+  });
 
   console.log(
     `       Successfully saved ${chunksToInsert.length} new vectorized chunks!`,

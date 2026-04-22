@@ -3,10 +3,14 @@ import { eq, sql, and } from "drizzle-orm";
 import { db } from "./index.js";
 import { chunks } from "./schema/chunks.js";
 import { embedBatch } from "../embedding/embedding.js";
-import { CONFIG } from "../config/config.js";
+import { rerankDocuments } from "../api/services/voyage.service.js";
 
 import type { SearchResult } from "./interface/searchResult.interface.js";
 import type { RetrievalResponse } from "./interface/retrievalResponse.interface.js";
+
+const WEIGHT_SEMANTIC = 0.7;
+const WEIGHT_KEYWORD = 0.3;
+const CONFIDENCE_THRESHOLD = 0.4;
 
 /**
  * Stage 1: Perform a Hybrid Search (Vector + Full-Text BM25) in PostgreSQL (Fetch to 20)
@@ -33,7 +37,6 @@ export async function search(
     throw new Error("Failed to generate embedding for the search query.");
   }
 
-  // Vector Score (Semantic Match: 0 to 1)
   const vectorScore = sql<number>`1 - (${chunks.embedding} <=> ${JSON.stringify(queryEmbedding)})`;
 
   // Full-Text Search Score (BM25 Exact keyword Match)
@@ -42,9 +45,10 @@ export async function search(
 
   // Combined Score (Weighted: 70% Semantic, 30% Exact Match)
   const combinedScore =
-    sql<number>`(${vectorScore} * 0.7) + (${textScore} * 0.3)`.as("similarity");
+    sql<number>`(${vectorScore} * ${WEIGHT_SEMANTIC}) + (${textScore} * ${WEIGHT_KEYWORD})`.as(
+      "similarity",
+    );
 
-  // Let Postgres do the math and sorting
   const dbResults = (await db
     .select({
       id: chunks.id,
@@ -53,7 +57,12 @@ export async function search(
       similarity: combinedScore,
     })
     .from(chunks)
-    .where(and(eq(chunks.userId, userId),  documentId ? eq(chunks.documentId, documentId) : undefined))
+    .where(
+      and(
+        eq(chunks.userId, userId),
+        documentId ? eq(chunks.documentId, documentId) : undefined,
+      ),
+    )
     .orderBy(sql`${combinedScore} DESC`)
     .limit(dbLimit)) as SearchResult[];
 
@@ -66,32 +75,13 @@ export async function search(
   );
   let usableChunks: SearchResult[] = [];
 
-  // Extract just the text content to send to the Reranker
   const documentTexts = dbResults.map((chunk) => chunk.content);
 
   // Call Voyage AI's Reranker API
   try {
-    const rerankResponse = await fetch("https://api.voyageai.com/v1/rerank", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.VOYAGE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        query: query,
-        documents: documentTexts,
-        model: "rerank-2.5",
-        top_k: finalLimit, // Note: Voyage REST API uses top_k instead of topK
-      }),
-    });
+    const rerankData = await rerankDocuments(query, documentTexts, finalLimit);
 
-    const rerankData = await rerankResponse.json();
-
-    if (!rerankData.data) {
-      throw new Error(`Voyage Rerank Error: ${JSON.stringify(rerankData)}`);
-    }
-
-    usableChunks = rerankData.data.map((r: any) => {
+    usableChunks = rerankData.map((r: any) => {
       const originalChunk = dbResults[r.index];
 
       if (!originalChunk) {
@@ -117,7 +107,7 @@ export async function search(
   const [score] = usableChunks;
   const topScore = score?.similarity || 0;
 
-  if (topScore > 0.4) {
+  if (topScore > CONFIDENCE_THRESHOLD) {
     return { status: "CONFIDENT", chunks: usableChunks };
   } else {
     console.log(` Medium/Low confidence. Proceeding with caution.`);

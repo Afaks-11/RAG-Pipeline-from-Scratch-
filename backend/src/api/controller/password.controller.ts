@@ -14,10 +14,10 @@ export class PasswordController {
         return;
       }
 
-      await PasswordService.generateOtp(email);
-      res
-        .status(200)
-        .json({ message: "If that email exists, an OTP has been sent." });
+       await PasswordService.generateOtp(email);
+       res.status(200).json({
+         message: "If that email exists, an OTP has been sent.",
+       });
     } catch (error) {
       next(error);
     }
