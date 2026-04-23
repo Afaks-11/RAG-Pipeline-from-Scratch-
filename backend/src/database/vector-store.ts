@@ -103,7 +103,7 @@ export async function search(
     usableChunks = dbResults.slice(0, finalLimit);
   }
 
-  // 3. Confidence check based on the top result's score
+  // Confidence check based on the top result's score
   const [score] = usableChunks;
   const topScore = score?.similarity || 0;
 

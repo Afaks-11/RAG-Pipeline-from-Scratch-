@@ -26,3 +26,10 @@ export interface MainStageProps {
   selectedDocId: string | null;
   selectedDocName: string | null;
 }
+
+export interface ChatAPIResponse {
+  reply: string;
+  sources?: string[];
+  error?: string;
+}
+

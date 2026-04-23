@@ -26,9 +26,7 @@ export async function fetchClient<T>(
     try {
       const errorData = await response.json();
       errorMessage = errorData.error || errorMessage;
-    } catch (err) {
-      // Fallback if the backend didn't send JSON
-    }
+    } catch (err) {}
     throw new Error(errorMessage);
   }
   return response.json() as Promise<T>;

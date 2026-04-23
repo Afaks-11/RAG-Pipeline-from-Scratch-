@@ -9,7 +9,6 @@ export async function generate(
 ): Promise<GenerationResult> {
   const { model = "llama-3.3-70b-versatile", temperature = 0.2 } = options;
 
-  // FIX IS HERE: Mapped to the new Postgres flat structure (r.similarity, r.documentId, r.content)
   const contextBlock = results
     .map(
       (r, i) =>

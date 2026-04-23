@@ -1,11 +1,9 @@
 import { fetchClient } from "./apiClient";
-import type { ChatMessage, ChatRequestPayload } from "../types";
-
-interface ChatAPIResponse {
-  reply: string;
-  sources?: string[];
-  error?: string;
-}
+import type {
+  ChatMessage,
+  ChatRequestPayload,
+  ChatAPIResponse,
+} from "../types";
 
 export const chatAPI = {
   sendMessage: (query: string, documentId: string) => {
